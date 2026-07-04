@@ -1,0 +1,101 @@
+# -*- mode: org; coding: utf-8; -*-
+#+title: Open Sound Control
+
+An implementation of the Open Sound Control protocol (or more accurately "data transport specification" or "encoding") in Janet. Provides self-contained encoding and decoding of OSC data, messages, and bundles. OSC describes a transport-independent encoding and does not specify a transport layer, messages can be sent using UDP, TCP, or other protocols. More details at https://OpenSoundControl.org
+
+Translated to janet based on cl-osc https://github.com/zzkt/osc
+
+** OSC 1.0 and 1.1 support
+
+Supports the [[https://opensoundcontrol.stanford.edu/spec-1_0.html][OpenSoundControl Specification 1.0]] and the required typetags listed in the [[https://opensoundcontrol.stanford.edu/spec-1_1.html][OpenSoundControl Specification 1.1]] (as described in an [[https://opensoundcontrol.stanford.edu/files/2009-NIME-OSC-1.1.pdf][NIME 2009 paper]]).
+
+|------+---------+----------------------------------------------------+-----+-----+--------|
+| *Tag*  | *Type*    | *Description*                                        | *1.0* | *1.1* | *oscule* |
+|------+---------+----------------------------------------------------+-----+-----+--------|
+| i    | int32   | 32-bit big-endian two's complement integer         | *R*   | *R*   | ✓      |
+| f    | float32 | 32-bit big-endian IEEE 754 floating point number   | *R*   | *R*   | ✓      |
+| s    | string  | Non-null ASCII chars + null pad to 32-bit boundary | *R*   | *R*   | ✓      |
+| b    | blob    | int32 length + bytes + null pad to 32-bit boundary | *R*   | *R*   | ✓      |
+| T    | True    | No argument data                                   | O   | *R*   | ✓      |
+| F    | False   | No argument data                                   | O   | *R*   | ✓      |
+| N    | Null    | No argument data                                   | O   | *R*   | ✓      |
+| I    | Impulse | Event trigger (bang); no argument data             | O   | *R*   | ✓      |
+| t    | timetag | NTP-format OSC timetag                             | O   | *R*   | ✓      |
+| h    | int64   | 64-bit big-endian two's complement integer         | O   | O   | ✓      |
+| d    | float64 | 64-bit IEEE 754 double                             | O   | O   | ✓      |
+| S    | string  | Alternate OSC-string (e.g. UTF-8 symbols)          | O   | O   | ✓      |
+| c    | char    | ASCII character sent as 32 bits                    | O   | O   | ✓      |
+| r    | color   | 32-bit RGBA color                                  | O   | O   | ✓      |
+| m    | MIDI    | 4-byte MIDI message                                | O   | O   | ✓      |
+| [  ] | array   | Nested array delimiters                            | O   | O   | -      |
+|------+---------+----------------------------------------------------+-----+-----+--------|
+
+- *R* = Required, O = Optional
+
+** Usage
+
+#+BEGIN_SRC janet
+(import oscule :as osc)
+
+# encode a message
+(def msg (osc/encode-message "/filter" 1 2.0 "three"))
+
+# decode a message
+(def decoded (osc/decode-message msg))
+(decoded :address)  # returns "/filter"
+(decoded :args)     # returns @[1 2.0 "three"]
+
+# encode a bundle with timetag
+(def bundle (osc/encode-bundle :now
+            (osc/encode-message "/start" 0.0)
+            (osc/encode-message "/stop" 1.0)))
+
+# decode a bundle
+(def bd (osc/decode-bundle bundle))
+(bd :timetag)   # returns (0 1) for :now
+(bd :elements)  # returns array of messages
+#+END_SRC
+
+Or without a prefix...
+#+BEGIN_SRC janet
+(import oscule :prefix "")
+
+(encode-message "/filter" 1 2.0 "three")
+#+END_SRC
+
+** API
+
+Encoding messages and bundles
+- =(encode-message address & args)= → :string — encode an OSC message.
+- =(encode-bundle timetag & elements)= → :string — encode a bundle.
+
+Decoding messages and bundles
+- =(decode-message data)= → {:address string :args array} — decode a message.
+- =(decode-bundle data)= → {:timetag array :elements array} — decode a bundle.
+
+Networked transmission via UPD
+- =(osc-send host port address & args)= Send an OSC message to host:port via UDP.
+- =(osc-receive port)=  Receive an OSC message on the given UDP port.
+
+Printing messages
+- =(message->string msg)= Converts an OSC message to a string.
+
+In most cases the correct type should be inferred, however it may be necessary to explicitly encode specific data. Strings in particular may need to be explicitly encoded as ASCII or UTF-8 for compatibility with some other implementations.
+
+- =(encode-int32 n)= → :string — encode a 32-bit signed integer
+- =(decode-int32 data pos)= → :number — decode int32 from position
+- =(decode-uint32 data pos)= → :number — decode unsigned 32-bit
+- =(encode-float32 f)= → :string — encode a single-precision float
+- =(decode-float32 data pos)= → :number — decode float32
+- =(decode-float64 data pos)= → :number — decode double-precision float
+- =(encode-string s)= → :string — encode (ASCII) string with null padding
+- =(decode-string data pos)= → :string — decode null-terminated string
+- =(encode-string-utf8 S)= → :string — encode UTF-8 string (i.e. alternate OSC-string?)
+- =(encode-blob b)= → :string — encode blob with length prefix
+- =(encode-timetag t)= → :string — encode timetag (:now or [second fraction])
+- =(encode-char c)= → :string — encode a character as 32-bit integer
+- =(encode-rgba r g b a)= → :string — encode RGBA colour as 4 bytes
+- =(encode-midi port status data1 data2)= → :string — encode 4-byte MIDI message
+- =(decode-char data pos)= → :number — decode 32-bit character value
+- =(decode-rgba data pos)= → [r g b a] — decode RGBA colour
+- =(decode-midi data pos)= → [port status data1 data2] — decode MIDI message
