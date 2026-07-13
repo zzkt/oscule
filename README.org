@@ -32,6 +32,14 @@ Supports the [[https://opensoundcontrol.stanford.edu/spec-1_0.html][OpenSoundCon
 
 - *R* = Required, O = Optional
 
+** Installation
+
+This module can be installed using =jpm=
+#+BEGIN_SRC shell
+jpm install https://codeberg.org/zzkt/oscule
+#+END_SRC
+
+
 ** Usage
 
 #+BEGIN_SRC janet
