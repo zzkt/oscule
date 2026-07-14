@@ -81,7 +81,7 @@ Decoding messages and bundles
 - =(decode-message data)= → {:address string :args array} — decode a message.
 - =(decode-bundle data)= → {:timetag array :elements array} — decode a bundle.
 
-Networked transmission via UPD
+Networked transmission via UDP
 - =(osc-send host port address & args)= Send an OSC message to host:port via UDP.
 - =(osc-receive port)=  Receive an OSC message on the given UDP port.
 

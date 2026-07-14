@@ -73,7 +73,7 @@
       (set m (/ m (math/pow 2 e))))
     (while (>= m 2) (set m (/ m 2)) (++ e))
     (while (< m 1) (set m (* m 2)) (-- e))
-    (s e (- m 1)]))
+    [s e (- m 1)]))
 
 (defn- float32-raw
   "Encode a float as a raw IEEE 754 32-bit signed integer."
